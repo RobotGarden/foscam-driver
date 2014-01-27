@@ -187,8 +187,3 @@ class FoscamControl(object):
     def open_log(self):
         "Open a file pointer to the camera log, caller must read and close"
         return urlopen('%s/get_log.cgi?%s' % (self.url, dict2querry(self.auth)))
-        
-    
-        
-        
-    
