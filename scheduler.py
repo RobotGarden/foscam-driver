@@ -1,9 +1,48 @@
 #!/usr/bin/env python
+"""
+Snapshot and interval capture scheduler module for FOSCAM.
+"""
+__author__  = "Daniel Casner <www.danielcasner.org>"
+__version__ = "0.0.1"
 
 import time, threading
 import control
 
 SEEK_TIME = 10.0
+
+class PriorityQueue(object):
+    """A priority queue where objects are added with a priority and popped based on
+their priority."""
+
+    def __init__(self):
+        "Initialize empty priority queue."
+        self.q = []
+        self.s = threading.Semaphore()
+    
+    def __del__(self):
+        "Clean up safely."
+        assert self.s.acquire() # Wait for everyone else clear
+    
+    def acquire(self):
+        "Acquire the queue semaphore."
+        return self.s.acquire()
+        
+    def release(self):
+        "Release the queue semaphore."
+        return self.s.release()
+    
+    def append(self, obj, priority):
+        "Add an new object to the queue at the specified priority."
+        for i, o in enumerate(self.q):
+            if priority <= o[0]:
+                self.q.insert(i, (priority, obj))
+                return
+        else:
+            self.q.append((priority, obj))
+            
+    def pop(self):
+        "Return the latest next (highest priority) object from the queue."
+        return self.q.pop()
 
 
 class SnapshotAction(object):
@@ -47,6 +86,7 @@ class SnapshotAction(object):
                     return False
             return True
 
+            
 class Scheduler(object):
     """An object to manage multiple competing requests for the camera.
     Multiple callers can schedule single snapshots or seriese via the
@@ -58,6 +98,7 @@ class Scheduler(object):
         "Set up the scheduler."
         self.cam = foscam
         self.queue = PriorityQueue()
+        self.thread = None
     
     def snapshot(self, priority, preset, callback, expire=None):
         """Request a snapshot at a given preset.
@@ -69,7 +110,9 @@ class Scheduler(object):
         @param callback Function to call with the photo data
         @param expire Latest time that the caller wants the photo. None for no expiration.
         """
+        self.queue.acquire()
         self.queue.append(SnapshotAction(self.cam, preset, callback, expire=expire), priority)
+        self.queue.release()
         self.scheduleThread()
     
     def interval(self, priority, preset, callback, number, period):
@@ -80,12 +123,17 @@ class Scheduler(object):
         @param number How many pictures to take.
         @param period How many seconds between pictures.
         """
+        self.queue.acquire()
         self.queue.append(SnapshotAction(self.cam, preset, callback, number, period, expire), priority)
+        self.queue.release()
         self.scheduleThread()
     
     def scheduleThread(self):
         """Fire off the priority queue processing thread if it isn't."""
-        
+        if self.thread is None or self.thread.isAlive() is False:
+            self.thread = threading.Thread(target=self.processQueue)
+            self.thread.start()
+            
     
     def processQueue(self):
         """Execute anything from the priorityQueue"""
