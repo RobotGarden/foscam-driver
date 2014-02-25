@@ -23,6 +23,15 @@ their priority."""
         "Clean up safely."
         assert self.s.acquire() # Wait for everyone else clear
     
+    def __len__(self):
+        "Length of the queue"
+        return len(self.q)
+    
+    @property
+    def empty(self):
+        "True if there are no elements in the queue."
+        return len(self.q) == 0
+    
     def acquire(self):
         "Acquire the queue semaphore."
         return self.s.acquire()
@@ -31,7 +40,7 @@ their priority."""
         "Release the queue semaphore."
         return self.s.release()
     
-    def append(self, obj, priority):
+    def append(self, priority, obj):
         "Add an new object to the queue at the specified priority."
         for i, o in enumerate(self.q):
             if priority <= o[0]:
@@ -111,7 +120,7 @@ class Scheduler(object):
         @param expire Latest time that the caller wants the photo. None for no expiration.
         """
         self.queue.acquire()
-        self.queue.append(SnapshotAction(self.cam, preset, callback, expire=expire), priority)
+        self.queue.append(priority, SnapshotAction(self.cam, preset, callback, expire=expire))
         self.queue.release()
         self.scheduleThread()
     
@@ -124,7 +133,7 @@ class Scheduler(object):
         @param period How many seconds between pictures.
         """
         self.queue.acquire()
-        self.queue.append(SnapshotAction(self.cam, preset, callback, number, period, expire), priority)
+        self.queue.append(priority, SnapshotAction(self.cam, preset, callback, number, period, expire))
         self.queue.release()
         self.scheduleThread()
     
@@ -137,4 +146,16 @@ class Scheduler(object):
     
     def processQueue(self):
         """Execute anything from the priorityQueue"""
-        
+        while True:
+            self.queue.acquire()
+            if self.queue.empty:
+                self.queue.release()
+                break
+            else:
+                priority, task = self.queue.pop()
+                self.queue.release()
+                done = task.run()
+                if not done:
+                    self.queue.acquire()
+                    self.queue.append(priority, task)
+                    self.queue.release()
