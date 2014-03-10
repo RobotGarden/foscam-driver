@@ -121,8 +121,8 @@ class Scheduler(object):
         """
         self.queue.acquire()
         self.queue.append(priority, SnapshotAction(self.cam, preset, callback, expire=expire))
-        self.queue.release()
         self.scheduleThread()
+        self.queue.release()
     
     def interval(self, priority, preset, callback, number, period):
         """Requests a series of snapshots at a given present.
@@ -134,8 +134,8 @@ class Scheduler(object):
         """
         self.queue.acquire()
         self.queue.append(priority, SnapshotAction(self.cam, preset, callback, number, period, expire))
-        self.queue.release()
         self.scheduleThread()
+        self.queue.release()
     
     def scheduleThread(self):
         """Fire off the priority queue processing thread if it isn't."""
