@@ -187,3 +187,19 @@ class FoscamControl(object):
     def open_log(self):
         "Open a file pointer to the camera log, caller must read and close"
         return urlopen('%s/get_log.cgi?%s' % (self.url, dict2querry(self.auth)))
+
+        
+class _TestBench(object):
+    "Test suite for the Foscam controller."
+    
+    def __init__(self, url, user, password):
+        self.cam = FoscamControl(url, user, password)
+        from PIL import image
+        
+    def test(self):
+        self.test_snapshot()
+    
+    def test_snapshot(self):
+        # Load snapshot into PIL
+        self.cam.snapshot()
+        
