@@ -76,12 +76,12 @@ class FoscamControl(object):
         fh.close()
         return retval
     
-    @staticmethod
-    def _read_and_parse(url):
-        raw = _read_raw(url)
+    @classmethod
+    def _read_and_parse(cls, url):
+        raw = cls._read_raw(url)
         ret = {}
         for l in raw.split('\n'):
-            if not l.startswith('var ') and l.endswith(';'): continue
+            if not (l.startswith('var ') and l.endswith(';')): continue
             k, v = l[4:-1].split('=')
             if v.isdigit(): # and int
                 ret[k] = int(v)
@@ -94,7 +94,7 @@ class FoscamControl(object):
     def snapshot(self, resolution='VGA'):
         "Gets a still image (jpeg)"
         if not resolution in VIDEO_RESOLUTIONS.keys(): raise ValueError('resolution must be one of %s' % repr(VIDEO_RESOLUTIONS.keys()))
-        else: return self._read_raw('%s/snapshot.cgi?user=%s&pwd=%s&resolution=%d' % (self.url, self.auth['user'], self.auth['pwd'], VIDEO_RESOLUTIONS[resolution]))
+        else: return self._read_raw('%s/snapshot.cgi?user=%s&pwd=%s&resolution=%s' % (self.url, self.auth['user'], self.auth['pwd'], VIDEO_RESOLUTIONS[resolution]))
     
     def videostream(self, resolution='VGA', rate='full', format='mjpeg'):
         "Start a video stream and return the file handle"
@@ -126,11 +126,11 @@ class FoscamControl(object):
         if onestep: args['onestep'] = '1'
         if degree is not None: args['degree'] = str(degree)
         args.update(self.auth) # Add authentication to call
-        return self._read_and_prase('%s/decoder_control.cgi?%s' % (self.url, dict2querry(args)))
+        return self._read_and_parse('%s/decoder_control.cgi?%s' % (self.url, dict2querry(args)))
     
     def goto_preset(self, preset):
         "Go to numbered preset pan and tilt position"
-        args = {'command': str(30 + ((preset-1)*2)}
+        args = {'command': str(30 + ((preset-1)*2))}
         args.update(self.auth)
         self._read_raw('%s/decoder_control.cgi?%s' % (self.url, dict2querry(args)))
     
@@ -188,18 +188,4 @@ class FoscamControl(object):
         "Open a file pointer to the camera log, caller must read and close"
         return urlopen('%s/get_log.cgi?%s' % (self.url, dict2querry(self.auth)))
 
-        
-class _TestBench(object):
-    "Test suite for the Foscam controller."
-    
-    def __init__(self, url, user, password):
-        self.cam = FoscamControl(url, user, password)
-        from PIL import image
-        
-    def test(self):
-        self.test_snapshot()
-    
-    def test_snapshot(self):
-        # Load snapshot into PIL
-        self.cam.snapshot()
         
