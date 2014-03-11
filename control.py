@@ -34,24 +34,26 @@ VIDEO_MODES = {
     '60Hz': '1',
     'outdoor': '2',
 }
-# Control commands
-UP = '0'
-STOP_UP = '1'
-DOWN = '2'
-STOP_DOWN = '3'
-LEFT = '4'
-STOP_LEFT = '5'
-RIGHT = '6'
-STOP_RIGHT = '7'
-CENTER = '25'
-UP_DOWN_PATROL = '26'
-STOP_UP_DOWN_PATROL = '27'
-LEFT_RIGHT_PATROL = '28'
-STOP_LEFT_RIGHT_PATROL = '29'
-UPPER_LEFT = '90'
-UPPER_RIGHT = '91'
-DOWN_LEFT = '92'
-DOWN_RIGHT = '93'
+
+CONTROL_COMMANDS = {
+    'UP': '0',
+    'STOP_UP': '1',
+    'DOWN': '2',
+    'STOP_DOWN': '3',
+    'LEFT': '4',
+    'STOP_LEFT': '5',
+    'RIGHT': '6',
+    'STOP_RIGHT': '7',
+    'CENTER': '25',
+    'UP_DOWN_PATROL': '26',
+    'STOP_UP_DOWN_PATROL': '27',
+    'LEFT_RIGHT_PATROL': '28',
+    'STOP_LEFT_RIGHT_PATROL': '29',
+    'UPPER_LEFT': '90',
+    'UPPER_RIGHT': '91',
+    'DOWN_LEFT': '92',
+    'DOWN_RIGHT': '93',
+}
 PATROL_MODES = {
     'initial': '0',
     'vertical': '1',

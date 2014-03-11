@@ -5,6 +5,7 @@ from PIL import Image
 import tempfile
 import os
 import control
+import time
 
 class ControllerTest(unittest.TestCase):
     "Test suite for the Foscam controller."
@@ -39,6 +40,15 @@ class ControllerTest(unittest.TestCase):
         
     def test_get_camera_params(self):
         self.assertIsInstance(self.cam.get_camera_params(), dict)
+        
+    def test_control(self):
+        for command in control.CONTROL_COMMANDS:
+            for onestep in [None, True]:
+                for degree in [None, 0, 10, 20, 30]:
+                    rslt = self.cam.control(command, onestep, degree)
+                    sys.stdout.write('FoscamControl(%s, %s, %s) --> %s\n' [repr(a) for a in [command, onestep, degree, rslt]])
+                    self.assertIsInstance(rslt, dict)
+                    time.sleep(2.0) # Rate limit
 
 if __name__ == '__main__':
     unittest.main()
