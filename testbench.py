@@ -6,6 +6,8 @@ import tempfile
 import os
 import control
 import time
+from getpass import getpass
+
 
 class ControllerTest(unittest.TestCase):
     "Test suite for the Foscam controller."
@@ -14,12 +16,13 @@ class ControllerTest(unittest.TestCase):
     def setUpClass(cls):
         CACHE_FN = '.testbench_args_cache'
         if os.path.isfile(CACHE_FN):
-            url, user = open(CACHE_FN).read().split()
+            url, user, pwd = open(CACHE_FN).read().split()
         else:
             url  = raw_input("Foscam URL>>> ")
             user = raw_input("Foscam User>>> ")
-            open(CACHE_FN, 'w').write('%s\n%s' % (url, user))
-        cls.cam = control.FoscamControl(url, user, None)
+            pwd  = getpass("Foscam Password>>> ")
+            open(CACHE_FN, 'w').write('%s\n%s\n%s' % (url, user, pwd))
+        cls.cam = control.FoscamControl(url, user, pwd)
             
     def test_snapshot(self):
         # Load snapshot into PIL
@@ -46,7 +49,7 @@ class ControllerTest(unittest.TestCase):
             for onestep in [None, True]:
                 for degree in [None, 0, 10, 20, 30]:
                     rslt = self.cam.control(command, onestep, degree)
-                    sys.stdout.write('FoscamControl(%s, %s, %s) --> %s\n' [repr(a) for a in [command, onestep, degree, rslt]])
+                    sys.stdout.write('FoscamControl(%s, %s, %s) --> %s\n' % [repr(a) for a in [command, onestep, degree, rslt]])
                     self.assertIsInstance(rslt, dict)
                     time.sleep(2.0) # Rate limit
 
