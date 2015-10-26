@@ -8,7 +8,7 @@ import time
 import scheduler
 import control
 
-SEEK_TIME = 10.0
+SEEK_TIME = 20.0
 
 class SnapshotAction:
     """An class to store the necessary information to execute 1 or more snapshots
@@ -29,7 +29,7 @@ class SnapshotAction:
         self.number   = number
         self.interval = interval
         self.expire   = expire
-        self.lastTime = 0.0
+        self.nextTime = 0.0
         
     def run(self):
         """Run the snapshot action.
@@ -37,18 +37,18 @@ class SnapshotAction:
         False if the action has more to do."""
         if self.expire is not None and time.time() > self.expire:
             return False
+        elif time.time() < self.nextTime - SEEK_TIME: # Not ready to run yet, snooze to the scheduler
+            return True
         else:
             self.cam.goto_preset(self.preset)
             time.sleep(SEEK_TIME)
-            remaining = self.interval - (time.time() - self.lastTime)
-            if remaining > 0.0: time.sleep(remaining)
             while self.number > 0:
-                self.lastTime = time.time()
                 self.callback(self.cam.snapshot())
                 self.number -= 1
                 if self.interval <= SEEK_TIME:
                     time.sleep(self.interval)
                 else:
+                    self.nextTime = time.time() + self.interval - SEEK_TIME
                     return True
             return False
 
@@ -72,7 +72,7 @@ class FoscamScheduler(scheduler.Scheduler):
         """
         self.append(priority, SnapshotAction(self.cam, preset, callback, expire=expire))
     
-    def interval(self, priority, preset, callback, number, period, expire):
+    def interval(self, priority, preset, callback, number, period, expire=None):
         """Requests a series of snapshots at a given present.
         @param priority honor system priority number for this request, larger numbers = higher priority.
         @param preset The preset to take the picture at.
