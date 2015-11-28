@@ -6,8 +6,9 @@ import sys
 from getpass import getpass
 if sys.version_info.major > 2:
     from urllib.request import urlopen
+    from urllib.parse   import urlencode
 else:
-    from urllib import urlopen
+    from urllib import urlopen, urlencode
 
 VIDEO_RESOLUTIONS = {
     'VGA':  '32', 
@@ -61,9 +62,6 @@ PATROL_MODES = {
     'vertical+horizontal': '3',
 }
 
-def dict2querry(dict):
-    return urlencode('&'.join(['='.join(i) for i in dict.items()]))
-
 class FoscamControl(object):
 
     def __init__(self, url, user, password):
@@ -82,12 +80,12 @@ class FoscamControl(object):
     def _read_and_parse(cls, url):
         raw = cls._read_raw(url)
         ret = {}
-        for l in raw.split('\n'):
-            if not (l.startswith('var ') and l.endswith(';')): continue
-            k, v = l[4:-1].split('=')
+        for l in raw.split(b'\n'):
+            if not (l.startswith(b'var ') and l.endswith(b';')): continue
+            k, v = l[4:-1].split(b'=')
             if v.isdigit(): # and int
                 ret[k] = int(v)
-            elif v.startswith("'") and v.endswith("'"): # a string
+            elif v.startswith(b"'") and v.endswith(b"'"): # a string
                 ret[k] = v[1:-1]
             else: # A ???
                 ret[k] = v
@@ -112,15 +110,15 @@ class FoscamControl(object):
             raise ValueError('Unsupported resolution, must be one of %s' % repr(VIDEO_RESOLUTIONS.keys()))
         args = {'resolution': resolution, 'rate': VIDEO_RATES[rate]}
         args.update(self.auth)
-        return urlopen(url + dict2querry(args))
+        return urlopen(url + urlencode(args))
         
     def get_status(self):
         "Obtain device status"
-        return self._read_and_parse(self.url + '/get_status.cgi')
+        return self._read_and_parse(self.url + '/get_status.cgi?' + urlencode(self.auth))
         
     def get_camera_params(self):
         "Obtain current camera parameters"
-        return self._read_and_parse(self.url + '/get_camera_params.cgi?' + dict2querry(self.auth))
+        return self._read_and_parse(self.url + '/get_camera_params.cgi?' + urlencode(self.auth))
         
     def control(self, command, onestep=None, degree=None):
         "Control's FOSCAM's motion hardware"
@@ -128,19 +126,19 @@ class FoscamControl(object):
         if onestep: args['onestep'] = '1'
         if degree is not None: args['degree'] = str(degree)
         args.update(self.auth) # Add authentication to call
-        return self._read_and_parse('%s/decoder_control.cgi?%s' % (self.url, dict2querry(args)))
+        return self._read_and_parse('%s/decoder_control.cgi?%s' % (self.url, urlencode(args)))
     
     def goto_preset(self, preset):
         "Go to numbered preset pan and tilt position"
-        args = {'command': str(30 + ((preset-1)*2))}
+        args = {'command': str(31 + ((preset-1)*2))}
         args.update(self.auth)
-        self._read_raw('%s/decoder_control.cgi?%s' % (self.url, dict2querry(args)))
+        self._read_raw('%s/decoder_control.cgi?%s' % (self.url, urlencode(args)))
     
     def set_preset(self, preset):
         "Save the current pan and tilt position of the camera as a numbered preset"
-        args = {'command': str(31 + ((preset-1)*2))}
+        args = {'command': str(30 + ((preset-1)*2))}
         args.update(self.auth)
-        self._read_raw('%s/decoder_control.cgi?%s' % (self.url, dict2querry(args)))
+        self._read_raw('%s/decoder_control.cgi?%s' % (self.url, urlencode(args)))
     
     def camera_control(self, resolution=None, brightness=None, contrast=None, mode=None, partol=None):
         "Set a parameter for the camera sensor. Only one of: resolution, brightness, contrast, mode or patrol may be not None."
@@ -162,32 +160,32 @@ class FoscamControl(object):
         else:
             raise ValueError('Exactly one argument to this function must be not None')
         args.update(self.auth) # Add authentication to call
-        return self.read_and_parse('%s/camera_control.cgi?%s' % (self.url, dict2querry(args)))
+        return self.read_and_parse('%s/camera_control.cgi?%s' % (self.url, urlencode(args)))
         
     def reboot(self):
         "Reboot the remote camera"
-        self._read_raw('%s/reboot.cgi?%s' % (self.url, dict2querry(self.auth)))
+        self._read_raw('%s/reboot.cgi?%s' % (self.url, urlencode(self.auth)))
         
     def get_params(self):
         "Obtain device settings"
-        return self._read_and_parse('%s/get_params.cgi?%s' % (self.url, dict2querry(self.auth)))
+        return self._read_and_parse('%s/get_params.cgi?%s' % (self.url, urlencode(self.auth)))
         
     def set_ftp(self, server, user, password, directory, port=21, retain=False, interval=0):
         "Configure FTP upload settings"
         args = {'svr': server, 'user': user, 'pwd': password, 'dir': directory, 'port': str(port), 'retain': str(int(retain)), 'upload_interval': str(interval), 'cam_user': self.auth['user'], 'cam_pwd': self.auth['pwd']}
-        self._read_daw('%s/set_ftp.cgi?%s' % (self.url, dict2querry(args)))
+        self._read_daw('%s/set_ftp.cgi?%s' % (self.url, urlencode(args)))
         
     def get_misc(self):
         "Get camera misc parameter settings"
-        return self._read_and_parse('%s/get_misc.cgi?%s' % (self.url, dict2querry(self.auth)))
+        return self._read_and_parse('%s/get_misc.cgi?%s' % (self.url, urlencode(self.auth)))
         
     def set_misc(self, **args):
         "Set camera misc parameters"
         args.update(self.auth)
-        self._read_raw('%s/set_misc.cgi?%s' % (self.url, dict2querry(args)))
+        self._read_raw('%s/set_misc.cgi?%s' % (self.url, urlencode(args)))
         
     def open_log(self):
         "Open a file pointer to the camera log, caller must read and close"
-        return urlopen('%s/get_log.cgi?%s' % (self.url, dict2querry(self.auth)))
+        return urlopen('%s/get_log.cgi?%s' % (self.url, urlencode(self.auth)))
 
         
