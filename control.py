@@ -128,6 +128,20 @@ class FoscamControl(object):
         args.update(self.auth) # Add authentication to call
         return self._read_and_parse('%s/decoder_control.cgi?%s' % (self.url, urlencode(args)))
     
+    def pan(self, degrees):
+        "Command a horizontal movement, positive is right, negative is left"
+        if degrees > 0.0:
+            return self.control(self.CONTROL_COMMANDS.RIGHT, degree=degrees)
+        elif:
+            return self.control(self.CONTROL_COMMANDS.LEFT, degree=-degrees)
+            
+    def tilt(self, degrees):
+        "Command vertical movement, positive is down, negative is up"
+        if degrees > 0.0:
+            return self.control(self.CONTROL_COMMANDS.DOWN, degrees=degrees)
+        else:
+            return self.control(self.CONTROL_COMMANDS.UP, degrees=-degrees)
+    
     def goto_preset(self, preset):
         "Go to numbered preset pan and tilt position"
         args = {'command': str(31 + ((preset-1)*2))}
