@@ -71,26 +71,24 @@ class SnapshotAction:
 class FoscamScheduler(scheduler.Scheduler):
     "A scheduler specific for a given foscam"
     
-    def __init__(self, foscams):
+    def __init__(self, foscam):
         scheduler.Scheduler.__init__(self)
-        self.cams = foscams
+        self.cam = foscam
     
-    def snapshot(self, camera, priority, preset, callback, expire=None):
+    def snapshot(self, priority, preset, callback, expire=None):
         """Request a snapshot at a given preset.
         snapshots will go into the priority queue and execute when it is their
         turn. A snapshot will not be cancelled if another request with higher 
         priority arrives while it is being executed.
-        @param The name of the camera to use
         @param priority honor system priority number for this request, larger numbers = higher priority.
         @param preset The preset to take the picture at.
         @param callback Function to call with the photo data
         @param expire Latest time that the caller wants the photo. None for no expiration.
         """
-        self.append(priority, SnapshotAction(self.cams[name], preset, callback, expire=expire))
+        self.append(priority, SnapshotAction(self.cam, preset, callback, expire=expire))
     
-    def interval(self, name, priority, preset, callback, number, period, expire=None):
+    def interval(self, priority, preset, callback, number, period, expire=None):
         """Requests a series of snapshots at a given present.
-        @param camera The name of the camera to use
         @param priority honor system priority number for this request, larger numbers = higher priority.
         @param preset The preset to take the picture at.
         @param callback Function to call each successive frame.
@@ -98,5 +96,9 @@ class FoscamScheduler(scheduler.Scheduler):
         @param period How many seconds between pictures.
         @param expire Latest time that the caller wants the photo. None for no expiration.
         """
-        self.append(priority, SnapshotAction(self.cams[name], preset, callback, number, period, expire))
+        self.append(priority, SnapshotAction(self.cam, preset, callback, number, period, expire))
+        
+    def queueDone(self):
+        "Action when there are no more requests on the camera"
+        self.cam.goto_preset(self.cam.defaultPreset)
     

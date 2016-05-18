@@ -96,4 +96,9 @@ class Scheduler:
                 repost = task.run()
                 if repost:
                     self.queue.append(priority, task)
+        self.queueDone()
+                    
+    def queueDone(self):
+        "Method to be overridden by subclasses for taking specific action when the queue is done"
+        pass
 

@@ -64,10 +64,11 @@ PATROL_MODES = {
 
 class FoscamControl(object):
 
-    def __init__(self, url, user, password):
+    def __init__(self, url, user, password, defaultPreset=1):
         self.url  = url
         if password is None: password = getpass('Password for %s@%s>' % (user, url))
         self.auth = {'user': user, 'pwd': password}
+        self.defaultPreset = defaultPreset
 
     @staticmethod
     def _read_raw(url):
