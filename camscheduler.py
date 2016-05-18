@@ -10,6 +10,20 @@ import control
 
 SEEK_TIME = 20.0
 
+class CameraAction:
+    """A general class for camera actions to queue"""
+    
+    def __init__(self, foscam, expire=None):
+        """Store basic action closure
+        @param foscam driver object
+        @param expire If time passes expire, delete the task
+        """
+        self.cam = foscam
+        self.expire = expire
+        
+    def run(self):
+        raise ValueError("CameraAction subclasses must implement run method")
+
 class SnapshotAction:
     """An class to store the necessary information to execute 1 or more snapshots
     immediately or at a time in the future."""
@@ -53,27 +67,30 @@ class SnapshotAction:
             return False
 
 
+
 class FoscamScheduler(scheduler.Scheduler):
     "A scheduler specific for a given foscam"
     
-    def __init__(self, foscam):
+    def __init__(self, foscams):
         scheduler.Scheduler.__init__(self)
-        self.cam = foscam
+        self.cams = foscams
     
-    def snapshot(self, priority, preset, callback, expire=None):
+    def snapshot(self, camera, priority, preset, callback, expire=None):
         """Request a snapshot at a given preset.
         snapshots will go into the priority queue and execute when it is their
         turn. A snapshot will not be cancelled if another request with higher 
         priority arrives while it is being executed.
+        @param The name of the camera to use
         @param priority honor system priority number for this request, larger numbers = higher priority.
         @param preset The preset to take the picture at.
         @param callback Function to call with the photo data
         @param expire Latest time that the caller wants the photo. None for no expiration.
         """
-        self.append(priority, SnapshotAction(self.cam, preset, callback, expire=expire))
+        self.append(priority, SnapshotAction(self.cams[name], preset, callback, expire=expire))
     
-    def interval(self, priority, preset, callback, number, period, expire=None):
+    def interval(self, name, priority, preset, callback, number, period, expire=None):
         """Requests a series of snapshots at a given present.
+        @param camera The name of the camera to use
         @param priority honor system priority number for this request, larger numbers = higher priority.
         @param preset The preset to take the picture at.
         @param callback Function to call each successive frame.
@@ -81,5 +98,5 @@ class FoscamScheduler(scheduler.Scheduler):
         @param period How many seconds between pictures.
         @param expire Latest time that the caller wants the photo. None for no expiration.
         """
-        self.append(priority, SnapshotAction(self.cam, preset, callback, number, period, expire))
+        self.append(priority, SnapshotAction(self.cams[name], preset, callback, number, period, expire))
     
